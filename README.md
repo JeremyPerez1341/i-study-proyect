@@ -32,30 +32,134 @@
 $ npm install
 ```
 
-## Running the app
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+## Create a new app
+```
+$ nest new istudy
 ```
 
-## Test
+## Run app
+```
+$ npm run start:dev
+```
 
-```bash
-# unit tests
-$ npm run test
+## Test app
+- http://localhost:3000
 
-# e2e tests
-$ npm run test:e2e
+## Install Dependencies
+```
+$ npm i --save typeorm mysql2 node-sql-reader @nestjs/typeorm @nestjs/cqrs
+```
 
-# test coverage
-$ npm run test:cov
+## package.json so far
+```
+"dependencies": {
+    "@nestjs/common": "^9.0.0",
+    "@nestjs/core": "^9.0.0",
+    "@nestjs/cqrs": "^9.0.1",
+    "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/typeorm": "^9.0.1",
+    "mysql2": "^2.3.3",
+    "node-sql-reader": "^0.1.3",
+    "reflect-metadata": "^0.1.13",
+    "rimraf": "^3.0.2",
+    "rxjs": "^7.2.0",
+    "typeorm": "^0.3.10"
+},
+```
+
+## Install Dev Dependencies
+```
+$ npm i --save-dev npm-run-all
+```
+
+## package.json so far
+```
+"devDependencies": {
+    ...,
+    "npm-run-all": "^4.1.5",
+    ...
+  },
+```
+
+## Scripts at package.json
+Add typeorm command under scripts section in package.json
+```
+"scripts": {
+    ...,
+    "typeorm": "typeorm-ts-node-commonjs"
+}
+```
+
+## Create migrations folder
+```
+src/shared/infrastructure/persistence/migrations
+```
+
+## Setup database connection at app.module.ts file inside imports section
+```
+imports: [
+    TypeOrmModule.forRoot({
+      type: "mysql",
+      url: 'mysql://root:root@localhost:3306/istudy',
+      migrationsRun: true,
+      logging: true,
+      timezone: '+00:00',
+      bigNumberStrings: false,
+      entities: [
+        'dist/**/infrastructure/persistence/entities/*{.ts,.js}'
+      ],
+      subscribers: [],
+      migrations: [
+        'dist/shared/infrastructure/persistence/migrations/*{.ts,.js}'
+      ],
+      migrationsTableName: "migrations"
+    })
+],
+```
+## Import TypeOrmModule package at app.module.ts file
+```
+import { TypeOrmModule } from '@nestjs/typeorm';
+```
+
+## Create Database
+```
+istudy
+```
+
+## Migrations
+
+```
+$ npm run typeorm migration:create ./src/shared/infrastructure/persistence/migrations/InitialSchema
+$ npm run typeorm migration:create ./src/shared/infrastructure/persistence/migrations/MasterData
+```
+
+```
+public async up(queryRunner: QueryRunner): Promise<void> {
+    const folder = __dirname;
+    const path = folder + '/initial-schema.sql';
+    let queries = SqlReader.readSqlFile(path);
+    for (let query of queries) {
+        await queryRunner.query(query);
+    }
+}
+```
+## Scripts at package.json
+Add the following commands under scripts section in package.json (not include build command)
+```
+"scripts": {
+    ...,
+    "copy:package": "node -e \"require('fs').copyFile('./package.json', './dist/package.json', function(err) { if (err) console.log(err); else console.log('package.json copied!') })\"",
+    "copy:initial-schema": "node -e \"require('fs').copyFile('src/shared/infrastructure/persistence/migrations/initial-schema.sql', './dist/shared/infrastructure/persistence/migrations/initial-schema.sql', function(err) { if (err) console.log(err); else console.log('initial-schema.sql copied!') })\"",
+    "copy:master-data": "node -e \"require('fs').copyFile('src/shared/infrastructure/persistence/migrations/master-data.sql', './dist/shared/infrastructure/persistence/migrations/master-data.sql', function(err) { if (err) console.log(err); else console.log('master-data.sql copied!') })\"",
+    "build": "nest build",
+    "postbuild": "run-p copy:package copy:initial-schema copy:master-data",
+}
+```
+
+## Run app in dev mode
+```
+$ npm run build
+$ npm run start:dev
 ```
 
 ## Support
